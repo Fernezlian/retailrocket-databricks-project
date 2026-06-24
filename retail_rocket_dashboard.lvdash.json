@@ -1,0 +1,462 @@
+{
+  "datasets": [
+    {
+      "name": "3639af28",
+      "displayName": "Hourly Event Totals Summary from Retail Rocket Data",
+      "queryLines": [
+        "USE CATALOG `retail_rocket`;\n",
+        "USE SCHEMA `db`;\n",
+        "\n",
+        "SELECT \n",
+        "  hour,\n",
+        "  event,\n",
+        "  COUNT(*) AS total_events\n",
+        "FROM events_silver\n",
+        "GROUP BY hour, event\n",
+        "ORDER BY hour;"
+      ]
+    },
+    {
+      "name": "64f2f5c3",
+      "displayName": "User Interaction Events Summary Retail Rocket",
+      "queryLines": [
+        "USE CATALOG `retail_rocket`;\n",
+        "USE SCHEMA `db`;\n",
+        "\n",
+        "SELECT \n",
+        "  COUNT(CASE WHEN event = 'view' THEN 1 END) AS views,\n",
+        "  COUNT(CASE WHEN event = 'addtocart' THEN 1 END) AS add_to_cart,\n",
+        "  COUNT(CASE WHEN event = 'transaction' THEN 1 END) AS purchases,\n",
+        "\n",
+        "  COUNT(CASE WHEN event = 'addtocart' THEN 1 END) * 100.0 /\n",
+        "  COUNT(CASE WHEN event = 'view' THEN 1 END) AS cart_rate,\n",
+        "\n",
+        "  COUNT(CASE WHEN event = 'transaction' THEN 1 END) * 100.0 /\n",
+        "  COUNT(CASE WHEN event = 'addtocart' THEN 1 END) AS purchase_rate\n",
+        "\n",
+        "FROM events_silver;"
+      ]
+    },
+    {
+      "name": "af25d0a4",
+      "displayName": "Top Ten Items Ranked by Views Adds and Purchases",
+      "queryLines": [
+        "USE CATALOG `retail_rocket`;\n",
+        "USE SCHEMA `db`;\n",
+        "\n",
+        "SELECT\n",
+        "  itemid,\n",
+        "  COUNT(CASE WHEN event = 'view' THEN 1 END) AS views,\n",
+        "  COUNT(CASE WHEN event = 'addtocart' THEN 1 END) AS adds,\n",
+        "  COUNT(CASE WHEN event = 'transaction' THEN 1 END) AS purchases,\n",
+        "  ROUND(\n",
+        "    (COUNT(CASE WHEN event = 'transaction' THEN 1 END) * 100.0) /\n",
+        "    NULLIF(COUNT(CASE WHEN event = 'view' THEN 1 END), 0), \n",
+        "    2\n",
+        "  ) AS purchase_rate\n",
+        "\n",
+        "FROM retail_rocket.db.events_silver\n",
+        "GROUP BY itemid\n",
+        "HAVING views > 1000\n",
+        "ORDER BY purchase_rate DESC\n",
+        "LIMIT 10;"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "2584f8e1",
+      "displayName": "Dash01",
+      "layout": [
+        {
+          "widget": {
+            "name": "0b3e0931",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "3639af28",
+                  "fields": [
+                    {
+                      "name": "hour",
+                      "expression": "`hour`"
+                    },
+                    {
+                      "name": "sum(total_events)",
+                      "expression": "SUM(`total_events`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "hour",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(total_events)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "add",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "64f2f5c3",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "sum(add_to_cart)",
+                      "expression": "SUM(`add_to_cart`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "showDescription": false,
+                "title": "Add to cart"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(add_to_cart)"
+                },
+                "target": {
+                  "fieldName": "count(*)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 6,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "cart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "64f2f5c3",
+                  "fields": [
+                    {
+                      "name": "sum(cart_rate)",
+                      "expression": "SUM(`cart_rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Cart rate"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(cart_rate)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 7,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "p",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "64f2f5c3",
+                  "fields": [
+                    {
+                      "name": "sum(purchases)",
+                      "expression": "SUM(`purchases`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Purchases"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(purchases)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 6,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "purc",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "64f2f5c3",
+                  "fields": [
+                    {
+                      "name": "sum(purchase_rate)",
+                      "expression": "SUM(`purchase_rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Purchase rate"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(purchase_rate)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 7,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "views",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "64f2f5c3",
+                  "fields": [
+                    {
+                      "name": "sum(views)",
+                      "expression": "SUM(`views`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Views"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(views)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 10,
+            "y": 6,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "080f61c8",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "af25d0a4",
+                  "fields": [
+                    {
+                      "name": "itemid",
+                      "expression": "`itemid`"
+                    },
+                    {
+                      "name": "purchase_rate",
+                      "expression": "`purchase_rate`"
+                    },
+                    {
+                      "name": "views",
+                      "expression": "`views`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "mark": {
+                "layout": "group"
+              },
+              "widgetType": "combo",
+              "encodings": {
+                "x": {
+                  "fieldName": "itemid",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "purchase_rate"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  },
+                  "secondary": {
+                    "fields": [
+                      {
+                        "fieldName": "views"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 8,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "5fbfe3d0",
+            "queries": [
+              {
+                "name": "dashboards/01f16362ef4b13efb408e3420a2668f4/datasets/01f16368364a157bb857bcd5c40e1526_hour",
+                "query": {
+                  "datasetName": "3639af28",
+                  "fields": [
+                    {
+                      "name": "min(hour)",
+                      "expression": "MIN(`hour`)"
+                    },
+                    {
+                      "name": "max(hour)",
+                      "expression": "MAX(`hour`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "widgetType": "range-slider",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "hour",
+                    "queryName": "dashboards/01f16362ef4b13efb408e3420a2668f4/datasets/01f16368364a157bb857bcd5c40e1526_hour"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 4,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  },
+  "variables": [
+    {
+      "name": "Purchase rate",
+      "displayName": "Purchase rate",
+      "field": {
+        "options": [
+          {
+            "expression": "SUM(`af25d0a4`.`purchases`)"
+          }
+        ]
+      }
+    }
+  ]
+}
